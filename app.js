@@ -8,11 +8,24 @@ var app = express();
 var bodyParser = require('body-parser');
 var urlencodedParser = bodyParser.urlencoded({ extended: false })
 
+function strToUrlgb2312(str) {//将字符串转成 url 的 gb2312 编码
+    var data = iconv.encode(str, 'gb2312').toString('hex')
+    var tempArr = []
+    for (var i = 1; i <= data.length / 2; i++) {
+        var j = i * 2 - 2;
+        tempArr[i - 1] = data.substr(j, 2);
+    }
+    var finaStr = tempArr.join("%");
+    finaStr = "%" + finaStr;
+    return finaStr;
+    // body...
+}
+//测试界面（本地实验）
 app.get('/', function (req, res) {
     //    res.send('Hello World');
     res.sendFile(__dirname + "/" + "index.html");
 })
-
+//验证学生学号密码等功能，测试完成，可以使用
 app.post('/checkStudentAccount', urlencodedParser, function (req, res) {
     async.waterfall([
         function (callback) {
@@ -68,12 +81,220 @@ app.post('/checkStudentAccount', urlencodedParser, function (req, res) {
         },
     ], function (err, result) {
         var response = {
-            account:result!=null,
+            account: result != null,
             name: result
         };
-        res.end(JSON.stringify(response));   
+        res.end(JSON.stringify(response));
     });
-})
+});
+//获取课程表功能测试通过，待优化，没有错误处理，返回 json 数据
+app.post('/getSource', urlencodedParser, function (req, res) {
+    async.waterfall([
+        function (callback) {
+            callback(null, req.body.xuehao, req.body.mima);
+        },
+        function (xuehao, mima, callback) {
+            var sourceList = new Array();
+            request.get({ url: "http://218.25.35.27:8080", encoding: null, forever: true }, function (err, response, body) {
+                var loginUrl = response.request.uri.href;
+                var sessurl = loginUrl.slice(0, 52);
+                var buf = iconv.decode(body, 'gb2312');
+                $ = cheerio.load(buf);
+                var viresta = $('input').attr('value');
+                //console.log($('input').attr('value'));
+                var formData = {
+                    '__VIEWSTATE': iconv.encode(viresta, 'gb2312'),
+                    //'__VIEWSTATE':$('input').attr('value'),
+                    'TextBox1': xuehao,
+                    'TextBox2': mima,
+                    'RadioButtonList1': iconv.encode("学生", 'gb2312'),
+                    'Button1': '',
+                    'lbLanguage': ''
+                };
+                console.log(sessurl);
+                //console.log(iconv.encode("学生",'gb2312'));
+                //教学网登陆+++++++
+                request.post({ url: loginUrl, encoding: null, form: formData, forever: true }, function (err, response, body) {
+                    //console.log(iconv.decode(body, 'gb2312'));
+                    //console.log(response.request);
+                    $ = cheerio.load(iconv.decode(body, 'gb2312'));
+                    var mainUrl = "http://218.25.35.27:8080" + $('a').attr('href');
+                    console.log(mainUrl);
+                    //302跳转登陆
+                    request.get({ url: mainUrl, encoding: null, forever: true }, function (err, response, body) {
+                        //console.log(iconv.decode(body, 'gb2312'));
+                        $ = cheerio.load(iconv.decode(body, 'gb2312'));
+                        var re = /\s(\S{2,4})同学/;
+                        var xingming = $('#xhxm').text().match(re)[1];
+                        console.log(xingming);
+                        var header = {
+                            'Referer': mainUrl,
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36'
+                        };
+                        var tempUrl = sessurl + "xskbcx.aspx?xh=" + xuehao + "&xm=" + strToUrlgb2312(xingming) + "&gnmkdm=N121501";
+                        request.get({ url: tempUrl, encoding: null, forever: true, headers: header }, function (err, response, body) {
+                            console.log(tempUrl);
+                            body = iconv.decode(body, 'gb2312');
+                            re = /(<br|rowspan=\"2\"|width=\"7%\")>[^<](\S+?)<br>周(一|二|三|四|五|六|日)第(1|3|5|7|9|11),(2|4|6|8|10|12)节{第(\d+)-(\d+)周}<br>(\S+?)<br>(\S+?)<(br>|\/td>)/g;
+                            //re = /<td align="Center" rowspan="2"\s{0,1}\S{0,10}>(\S+)<br>(周\S+)<br>(\S+)<br>([A-Z]{0,4}-\d+)<\/td>/g;
+                            var course = body.match(re);
+                            var source_id = 0;
+                            if (course) {
+                                for (let index = 0; index < course.length; index++) {
+                                    var element = course[index];
+                                    console.log(element);
+                                    tempRe = />(\S+?)<br>周(一|二|三|四|五|六|日)第(1|3|5|7|9|11),\d{1,2}节{第(\d+)-(\d+)周}<br>(\S+?)<br>(\S+?)</;
+                                    var sourceArray = element.match(tempRe);
+                                    sourceList[source_id] = {
+                                        sourceId: source_id++,
+                                        sourceName: sourceArray[1],
+                                        sourceClassRoom: sourceArray[7],
+                                        sourceStartWeek: sourceArray[4],
+                                        sourceEndWeek: sourceArray[5],
+                                        sourceWeekDay: sourceArray[2],
+                                        sourceTime: sourceArray[3],
+                                        sourceTeacher: sourceArray[6],
+                                        sourceSingleWeek: 0
+                                    };
+                                }
+                            } else {
+                                sourceList[0] = {
+                                    sourceId: 0,
+                                    sourceName: null,
+                                    sourceClassRoom: null,
+                                    sourceStartWeek: null,
+                                    sourceEndWeek: null,
+                                    sourceWeekDay: null,
+                                    sourceTime: null,
+                                    sourceTeacher: null,
+                                    sourceSingleWeek: 0
+                                };
+                            }
+                            callback(null, sourceList);
+                        });
+                    });
+                });
+            });
+
+        },
+    ], function (err, result) {
+        res.end(JSON.stringify(result));
+    });
+});
+//获取历年成绩测试通过，待优化，没有错误处理，返回 json 数据
+app.post('/getMark', urlencodedParser, function (req, res) {
+    async.waterfall([
+        function (callback) {
+            callback(null, req.body.xuehao, req.body.mima);
+        },
+        function (xuehao, mima, callback) {
+            var markList = new Array();
+            var markId = 0;
+            request.get({ url: "http://218.25.35.27:8080", encoding: null, forever: true }, function (err, response, body) {
+                var loginUrl = response.request.uri.href;
+                var sessurl = loginUrl.slice(0, 52);
+                var buf = iconv.decode(body, 'gb2312');
+                $ = cheerio.load(buf);
+                var viresta = $('input').attr('value');
+                //console.log($('input').attr('value'));
+                var formData = {
+                    '__VIEWSTATE': iconv.encode(viresta, 'gb2312'),
+                    //'__VIEWSTATE':$('input').attr('value'),
+                    'TextBox1': xuehao,
+                    'TextBox2': mima,
+                    'RadioButtonList1': iconv.encode("学生", 'gb2312'),
+                    'Button1': '',
+                    'lbLanguage': ''
+                };
+                console.log(sessurl);
+                //console.log(iconv.encode("学生",'gb2312'));
+                //教学网登陆+++++++
+                request.post({ url: loginUrl, encoding: null, form: formData, forever: true }, function (err, response, body) {
+                    //console.log(iconv.decode(body, 'gb2312'));
+                    //console.log(response.request);
+                    $ = cheerio.load(iconv.decode(body, 'gb2312'));
+                    var mainUrl = "http://218.25.35.27:8080" + $('a').attr('href');
+                    console.log(mainUrl);
+                    //302跳转登陆
+                    request.get({ url: mainUrl, encoding: null, forever: true }, function (err, response, body) {
+                        //console.log(iconv.decode(body, 'gb2312'));
+                        $ = cheerio.load(iconv.decode(body, 'gb2312'));
+                        var re = /\s(\S{2,4})同学/;
+                        var xingming = $('#xhxm').text().match(re)[1];
+                        console.log(xingming);
+                        var header = {
+                            'Referer': mainUrl,
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36'
+                        };
+                        var tempUrl = sessurl + "xscjcx.aspx?xh=" + xuehao + "&xm=" + strToUrlgb2312(xingming) + "&gnmkdm=N121605";
+                        request.get({ url: tempUrl, encoding: null, forever: true, headers: header }, function (err, response, body) {
+                            //console.log(iconv.decode(body, 'gb2312'));
+                            $ = cheerio.load(iconv.decode(body, 'gb2312'));
+                            var viewstate = $('input').attr('name', '__VIEWSTATE')[2].attribs.value;
+                            //console.log(viewstate)
+                            header = {
+                                'Referer': tempUrl,
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36'
+                            };
+                            formData = {
+                                '__EVENTTARGET': '',
+                                '__EVENTARGUMENT': '',
+                                '__VIEWSTATE': iconv.encode(viewstate, 'gb2312'),
+                                //'__VIEWSTATE':$('input').attr('value'),
+                                'hidLanguage': '',
+                                'ddlXN': '',
+                                'ddlXQ': '',
+                                'ddl_kcxz': '',
+                                'btn_zcj': strToUrlgb2312("历年成绩")//学期成绩为'btn_xq':strToUrlgb2312("学期成绩")
+                            };
+                            request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
+                                //$ = cheerio.load(iconv.decode(body, 'gb2312'));
+                                //callback(null,body);
+                                body = iconv.decode(body, 'gb2312');
+                                Re = /<tr(\sclass="alt")?>\s+<td>20\d{2}-20\d{2}<\/td><td>[1|2|3]\S+<\/td><td><\/td><td>(重修)?<\/td>\s+<\/tr>/g;
+                                var markArr = body.match(Re);
+                                if (markArr) {
+                                    for (let index = 0; index < markArr.length; index++) {
+                                        const element = markArr[index];
+                                        tempRe = /<.*?>(20\d{2}-20\d{2}\S+)<\/td>\s+<\/tr>/;
+                                        var markIndex = element.match(tempRe)[1]
+                                        var lastTemp = markIndex.split("</td><td>");
+                                        markList[markId] = {
+                                            markId: markId++,
+                                            markYear: lastTemp[0],
+                                            markSemester: lastTemp[1],
+                                            markNumber: lastTemp[2],
+                                            markStatus: lastTemp[3],
+                                            markClass: lastTemp[4],
+                                            markWidget: lastTemp[6],
+                                            markValue: lastTemp[7]
+                                        };
+                                    }
+                                    console.log(markList);
+                                } else {
+                                    markList[0] = {
+                                        markId: 0,
+                                        markYear: null,
+                                        markSemester: null,
+                                        markNumber: null,
+                                        markStatus: null,
+                                        markClass: null,
+                                        markWidget: null,
+                                        markValue: null
+                                    };
+                                }
+                                callback(null, markList);
+                            })
+                        });
+                    });
+                });
+            });
+        },
+    ], function (err, result) {
+        res.end(JSON.stringify(result));
+    });
+});
+
 
 var server = app.listen(3000, function () {
 
