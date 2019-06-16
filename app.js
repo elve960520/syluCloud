@@ -21,6 +21,24 @@ function strToUrlgb2312(str) {//将字符串转成 url 的 gb2312 编码
     return finaStr;
     // body...
 }
+
+function weekCHineseToNumber(str) {
+    if(str == "一"){
+        return 1;
+    }else if (str == "二"){
+        return 2;
+    }else if (str == "三"){
+        return 3;
+    }else if (str == "四"){
+        return 4;
+    }else if (str == "五"){
+        return 5;
+    }else if (str == "六"){
+        return 6;
+    }else if (str == "日"){
+        return 7;
+    }
+}
 //测试界面（本地实验）
 app.get('/', function (req, res) {
     //    res.send('Hello World');
@@ -152,7 +170,7 @@ app.post('/getSource', function (req, res) {
                                         sourceClassRoom: sourceArray[7],
                                         sourceStartWeek: sourceArray[4],
                                         sourceEndWeek: sourceArray[5],
-                                        sourceWeekDay: sourceArray[2],
+                                        sourceWeekDay: weekCHineseToNumber(sourceArray[2]),
                                         sourceTime: sourceArray[3],
                                         sourceTeacher: sourceArray[6],
                                         sourceSingleWeek: 0
