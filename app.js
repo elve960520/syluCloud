@@ -27,7 +27,7 @@ app.get('/', function (req, res) {
     res.sendFile(__dirname + "/" + "index.html");
 })
 //验证学生学号密码等功能，测试完成，可以使用
-app.post('/checkStudentAccount', urlencodedParser, function (req, res) {
+app.post('/checkStudentAccount',  function (req, res) {
     async.waterfall([
         function (callback) {
             callback(null, req.body.xuehao, req.body.mima);
@@ -89,7 +89,7 @@ app.post('/checkStudentAccount', urlencodedParser, function (req, res) {
     });
 });
 //获取课程表功能测试通过，待优化，没有错误处理，返回 json 数据
-app.post('/getSource', urlencodedParser, function (req, res) {
+app.post('/getSource', function (req, res) {
     async.waterfall([
         function (callback) {
             callback(null, req.body.xuehao, req.body.mima);
@@ -183,7 +183,7 @@ app.post('/getSource', urlencodedParser, function (req, res) {
     });
 });
 //获取历年成绩测试通过，待优化，没有错误处理，返回 json 数据
-app.post('/getMark', urlencodedParser, function (req, res) {
+app.post('/getMark', function (req, res) {
     async.waterfall([
         function (callback) {
             callback(null, req.body.xuehao, req.body.mima);
