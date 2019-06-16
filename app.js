@@ -44,6 +44,10 @@ app.get('/', function (req, res) {
     //    res.send('Hello World');
     res.sendFile(__dirname + "/" + "index.html");
 })
+
+app.get('/zan',function(req,res){
+    res.sendFile(__dirname + "/" + "zan.jpg");
+})
 //验证学生学号密码等功能，测试完成，可以使用
 app.post('/checkStudentAccount',  function (req, res) {
     async.waterfall([
