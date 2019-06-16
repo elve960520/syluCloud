@@ -6,7 +6,8 @@ var async = require('async');
 
 var app = express();
 var bodyParser = require('body-parser');
-var urlencodedParser = bodyParser.urlencoded({ extended: false })
+app.use(bodyParser.json())
+//var urlencodedParser = bodyParser.urlencoded({ extended: false })
 
 function strToUrlgb2312(str) {//将字符串转成 url 的 gb2312 编码
     var data = iconv.encode(str, 'gb2312').toString('hex')
