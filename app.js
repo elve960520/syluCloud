@@ -67,16 +67,16 @@ function saveStudentSource(xuehao, xuenian, xueqi, source) {
                 source: source
             }
         };
-        dbSylu.collection("studentBasicInfo").find(findData).toArray(function (err, result) { // 返回集合中所有数据
+        dbSylu.collection("studentSource").find(findData).toArray(function (err, result) { // 返回集合中所有数据
             if (err) throw err;
             if (result.length == 0) {
-                dbSylu.collection("studentBasicInfo").insertOne(insertData, function (err, res) {
+                dbSylu.collection("studentSource").insertOne(insertData, function (err, res) {
                     if (err) throw err;
                     //console.log("文档插入成功");
                     db.close();
                 });
             } else {
-                dbSylu.collection("studentBasicInfo").updateOne(findData, upData, function (err, res) {
+                dbSylu.collection("studentSource").updateOne(findData, upData, function (err, res) {
                     if (err) throw err;
                     //console.log("文档更新成功");
                     db.close();
@@ -103,16 +103,16 @@ function saveStudentMark(xuehao, mark) {
                 mark: mark
             }
         };
-        dbSylu.collection("studentBasicInfo").find(findData).toArray(function (err, result) { // 返回集合中所有数据
+        dbSylu.collection("studentMark").find(findData).toArray(function (err, result) { // 返回集合中所有数据
             if (err) throw err;
             if (result.length == 0) {
-                dbSylu.collection("studentBasicInfo").insertOne(insertData, function (err, res) {
+                dbSylu.collection("studentMark").insertOne(insertData, function (err, res) {
                     if (err) throw err;
                     //console.log("文档插入成功");
                     db.close();
                 });
             } else {
-                dbSylu.collection("studentBasicInfo").updateOne(findData, upData, function (err, res) {
+                dbSylu.collection("studentMark").updateOne(findData, upData, function (err, res) {
                     if (err) throw err;
                     //console.log("文档更新成功");
                     db.close();
