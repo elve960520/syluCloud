@@ -3,13 +3,126 @@ var iconv = require('iconv-lite');
 var cheerio = require('cheerio');
 var request = require('request');
 var async = require('async');
+var MongoClient = require('mongodb').MongoClient;
+var bodyParser = require('body-parser');
 
 var app = express();
-var bodyParser = require('body-parser');
 app.use(bodyParser.json())
 //var urlencodedParser = bodyParser.urlencoded({ extended: false })
-
-function strToUrlgb2312(str) {//将字符串转成 url 的 gb2312 编码
+//保存学号密码姓名到数据库
+function saveStudentBasicInfo(xuehao, mima, xingming) {
+    var url = "mongodb://root:meng9826873201@localhost:27017";
+    MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+        if (err) throw err;
+        //console.log("数据库已连接!");
+        var dbSylu = db.db("syluCloud");
+        //修改数据
+        var findData = { xuehao: xuehao };
+        var insertData = {
+            xuehao: xuehao,
+            mima: mima,
+            xingming: xingming
+        };
+        var upData = {
+            $set: {
+                mima: mima,
+                xingming: xingming
+            }
+        };
+        dbSylu.collection("studentBasicInfo").find(findData).toArray(function (err, result) { // 返回集合中所有数据
+            if (err) throw err;
+            if (result.length == 0) {
+                dbSylu.collection("studentBasicInfo").insertOne(insertData, function (err, res) {
+                    if (err) throw err;
+                    //console.log("文档插入成功");
+                    db.close();
+                });
+            } else {
+                dbSylu.collection("studentBasicInfo").updateOne(findData, upData, function (err, res) {
+                    if (err) throw err;
+                    //console.log("文档更新成功");
+                    db.close();
+                });
+            }
+        });
+    });
+}
+//保存课表到数据库
+function saveStudentSource(xuehao, xuenian, xueqi, source) {
+    var url = "mongodb://root:meng9826873201@localhost:27017";
+    MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+        if (err) throw err;
+        //console.log("数据库已连接!");
+        var dbSylu = db.db("syluCloud");
+        //修改数据
+        var findData = { xuehao: xuehao, xuenian: xuenian, xueqi: xueqi };
+        var insertData = {
+            xuehao: xuehao,
+            xuenian: xuenian,
+            xueqi: xueqi,
+            source: source
+        };
+        var upData = {
+            $set: {
+                source: source
+            }
+        };
+        dbSylu.collection("studentBasicInfo").find(findData).toArray(function (err, result) { // 返回集合中所有数据
+            if (err) throw err;
+            if (result.length == 0) {
+                dbSylu.collection("studentBasicInfo").insertOne(insertData, function (err, res) {
+                    if (err) throw err;
+                    //console.log("文档插入成功");
+                    db.close();
+                });
+            } else {
+                dbSylu.collection("studentBasicInfo").updateOne(findData, upData, function (err, res) {
+                    if (err) throw err;
+                    //console.log("文档更新成功");
+                    db.close();
+                });
+            }
+        });
+    });
+}
+//保持成绩到数据库
+function saveStudentMark(xuehao, mark) {
+    var url = "mongodb://root:meng9826873201@localhost:27017";
+    MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+        if (err) throw err;
+        //console.log("数据库已连接!");
+        var dbSylu = db.db("syluCloud");
+        //修改数据
+        var findData = { xuehao: xuehao };
+        var insertData = {
+            xuehao: xuehao,
+            mark: mark
+        };
+        var upData = {
+            $set: {
+                mark: mark
+            }
+        };
+        dbSylu.collection("studentBasicInfo").find(findData).toArray(function (err, result) { // 返回集合中所有数据
+            if (err) throw err;
+            if (result.length == 0) {
+                dbSylu.collection("studentBasicInfo").insertOne(insertData, function (err, res) {
+                    if (err) throw err;
+                    //console.log("文档插入成功");
+                    db.close();
+                });
+            } else {
+                dbSylu.collection("studentBasicInfo").updateOne(findData, upData, function (err, res) {
+                    if (err) throw err;
+                    //console.log("文档更新成功");
+                    db.close();
+                });
+            }
+        });
+    });
+}
+//将字符串转成 url 的 gb2312 编码
+function strToUrlgb2312(str) {
     var data = iconv.encode(str, 'gb2312').toString('hex')
     var tempArr = []
     for (var i = 1; i <= data.length / 2; i++) {
@@ -21,21 +134,21 @@ function strToUrlgb2312(str) {//将字符串转成 url 的 gb2312 编码
     return finaStr;
     // body...
 }
-
+//将中国字转成数字
 function weekCHineseToNumber(str) {
-    if(str == "一"){
+    if (str == "一") {
         return 1;
-    }else if (str == "二"){
+    } else if (str == "二") {
         return 2;
-    }else if (str == "三"){
+    } else if (str == "三") {
         return 3;
-    }else if (str == "四"){
+    } else if (str == "四") {
         return 4;
-    }else if (str == "五"){
+    } else if (str == "五") {
         return 5;
-    }else if (str == "六"){
+    } else if (str == "六") {
         return 6;
-    }else if (str == "日"){
+    } else if (str == "日") {
         return 7;
     }
 }
@@ -44,12 +157,13 @@ app.get('/', function (req, res) {
     //    res.send('Hello World');
     res.sendFile(__dirname + "/" + "index.html");
 })
-
-app.get('/zan',function(req,res){
+//获取赞赏二维码
+app.get('/zan', function (req, res) {
     res.sendFile(__dirname + "/" + "zan.jpg");
 })
+
 //验证学生学号密码等功能，测试完成，可以使用
-app.post('/checkStudentAccount',  function (req, res) {
+app.post('/checkStudentAccount', function (req, res) {
     async.waterfall([
         function (callback) {
             callback(null, req.body.xuehao, req.body.mima);
@@ -90,6 +204,7 @@ app.post('/checkStudentAccount',  function (req, res) {
                             console.log(xingming);
                             name = xingming;
                             callback(null, xingming)
+                            saveStudentBasicInfo(xuehao, mima, xingming);
                             //return xingming
                         } else {
                             var xingming = null
@@ -179,6 +294,20 @@ app.post('/getSource', function (req, res) {
                                         sourceTeacher: sourceArray[6],
                                         sourceSingleWeek: 0
                                     };
+                                    var nowDate = new Date();
+                                    var nowYear = nowDate.getFullYear();
+                                    var nowMonth = nowDate.getMonth();
+                                    if (nowMonth < 3) {
+                                        var xuenian = nowYear - 1 + "-" + nowYear;
+                                        var xueqi = "1";
+                                    } else if (nowMonth < 9) {
+                                        var xuenian = nowYear - 1 + "-" + nowYear;
+                                        var xueqi = "2";
+                                    } else {
+                                        var xuenian = nowYear + "-" + nowYear + 1;
+                                        var xueqi = "1";
+                                    }
+                                    saveStudentSource(xuehao, xuenian, xueqi, sourceList);
                                 }
                             } else {
                                 sourceList[0] = {
@@ -194,6 +323,7 @@ app.post('/getSource', function (req, res) {
                                 };
                             }
                             callback(null, sourceList);
+
                         });
                     });
                 });
@@ -293,7 +423,8 @@ app.post('/getMark', function (req, res) {
                                             markValue: lastTemp[7]
                                         };
                                     }
-                                    console.log(markList);
+                                    saveStudentMark(xuehao, markList);
+                                    //console.log(markList);
                                 } else {
                                     markList[0] = {
                                         markId: 0,
@@ -318,8 +449,7 @@ app.post('/getMark', function (req, res) {
     });
 });
 
-
-var server = app.listen({host: 'localhost',port: 3000}, function () {
+var server = app.listen({ host: 'localhost', port: 3000 }, function () {
 
     var host = server.address().address
     var port = server.address().port
