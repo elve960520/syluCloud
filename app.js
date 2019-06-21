@@ -193,25 +193,27 @@ app.post('/getViewAndStar', function (req, res) {
                 //console.log("数据库已连接!");
                 var dbSylu = db.db("syluCloud");
                 let starNum = 0;
-                viewAndStarList = dbSylu.collection("viewAndStar").find({}).toArray();
-                console.log(viewAndStarList)
-                for (let index = 0; index < viewAndStarList.length; index++) {
-                    const element = viewAndStarList[index];
-                    if(element.xuehao = xuehao){
-                        var stared = element.stared;
+                dbSylu.collection("viewAndStar").find({}).toArray(function (err,result) {
+                    console.log(result)
+                    for (let index = 0; index < result.length; index++) {
+                        const element = result[index];
+                        if (element.xuehao = xuehao) {
+                            var stared = element.stared;
+                        }
+                        if (element.stared == true) {
+                            starNum = starNum + 1;
+                        }
                     }
-                    if(element.stared == true){
-                        starNum = starNum+1;
+                    var resuData = {
+                        viewNum: result.length,
+                        starNum: starNum,
+                        stared: stared
                     }
-                }
-                var resuData = {
-                    viewNum:viewAndStarList.length,
-                    starNum:starNum,
-                    stared:stared
-                }
-                callback(null,resuData);
-                db.close();
-                console.log(resuData);
+                    callback(null, resuData);
+                    db.close();
+                    console.log(resuData);
+                });
+                
             });
         }
     ], function (err, result) {
