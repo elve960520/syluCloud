@@ -5,13 +5,12 @@ var request = require('request');
 var async = require('async');
 var MongoClient = require('mongodb').MongoClient;
 var bodyParser = require('body-parser');
-
+var url = "mongodb://root:meng9826873201@localhost:27017";
 var app = express();
 app.use(bodyParser.json())
 //var urlencodedParser = bodyParser.urlencoded({ extended: false })
 //保存学号密码姓名到数据库
 function saveStudentBasicInfo(xuehao, mima, xingming) {
-    var url = "mongodb://root:meng9826873201@localhost:27017";
     MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
         if (err) throw err;
         //console.log("数据库已连接!");
@@ -49,7 +48,7 @@ function saveStudentBasicInfo(xuehao, mima, xingming) {
 }
 //保存课表到数据库
 function saveStudentSource(xuehao, xuenian, xueqi, source) {
-    var url = "mongodb://root:meng9826873201@localhost:27017";
+    // var url = "mongodb://root:meng9826873201@localhost:27017";
     MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
         if (err) throw err;
         //console.log("数据库已连接!");
@@ -87,7 +86,7 @@ function saveStudentSource(xuehao, xuenian, xueqi, source) {
 }
 //保持成绩到数据库
 function saveStudentMark(xuehao, mark) {
-    var url = "mongodb://root:meng9826873201@localhost:27017";
+    // var url = "mongodb://root:meng9826873201@localhost:27017";
     MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
         if (err) throw err;
         //console.log("数据库已连接!");
@@ -161,7 +160,151 @@ app.get('/', function (req, res) {
 app.get('/zan', function (req, res) {
     res.sendFile(__dirname + "/" + "zan.jpg");
 })
-
+//获取周
+app.post('/getWeekNumber', function (req, res) {
+    async.waterfall([
+        function (callback) {
+            var date1 = new Date();
+            var date2 = new Date('2019-03-04');
+            var date = (date1.getTime() - date2.getTime()) / (24 * 60 * 60 * 1000);
+            //alert(parseInt(date)/7+1);
+            callback(null, (parseInt(date)/7+1)>20?20:(parseInt(date)/7+1));
+        },
+        function (weekNum,callback) {
+            let weekData={
+                weekNum:weekNum
+            };
+            callback(null,weekData);
+        }
+    ], function (err, result) {
+        res.end(JSON.stringify(result));
+    });
+});
+//获取view和star
+app.post('/getViewAndStar', function (req, res) {
+    async.waterfall([
+        function (callback) {
+            callback(null, req.body.xuehao);
+        },
+        function (xuehao,callback){
+            MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+                if (err) throw err;
+                //console.log("数据库已连接!");
+                var dbSylu = db.db("syluCloud");
+                let starNum = 0;
+                viewAndStarList = dbSylu.collection("viewAndStar").find().toArray();
+                for (let index = 0; index < viewAndStarList.length; index++) {
+                    const element = viewAndStarList[index];
+                    if(element.xuehao = xuehao){
+                        var stared = element.stared;
+                    }
+                    if(element.stared == true){
+                        starNum = starNum+1;
+                    }
+                }
+                var resuData = {
+                    viewNum:viewAndStarList.length,
+                    starNum:starNum,
+                    stared:stared
+                }
+                callback(null,resuData);
+                db.close();
+            });
+        }
+    ], function (err, result) {
+        res.end(JSON.stringify(result));
+    });
+});
+//设置view
+app.post('/setViewNum', function (req, res) {
+    async.waterfall([
+        function (callback) {
+            callback(null, req.body.xuehao);
+        },
+        function (xuehao,callback){
+            MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+                if (err) throw err;
+                //console.log("数据库已连接!");
+                var dbSylu = db.db("syluCloud");
+                //修改数据
+                var findData = { xuehao: xuehao };
+                var insertData = {
+                    xuehao: xuehao,
+                    view: true
+                };
+                var upData = {
+                    $set: {
+                        view: true
+                    }
+                };
+                dbSylu.collection("viewAndStar").find(findData).toArray(function (err, result) { // 返回集合中所有数据
+                    if (err) throw err;
+                    if (result.length == 0) {
+                        dbSylu.collection("viewAndStar").insertOne(insertData, function (err, res) {
+                            if (err) throw err;
+                            //console.log("文档插入成功");
+                            db.close();
+                        });
+                    } else {
+                        dbSylu.collection("viewAndStar").updateOne(findData, upData, function (err, res) {
+                            if (err) throw err;
+                            //console.log("文档更新成功");
+                            db.close();
+                        });
+                    }
+                    callback(null,"ok");
+                });
+            });
+        }
+    ], function (err, result) {
+        res.end(result);
+    });
+});
+//设置star
+app.post('/setStared', function (req, res) {
+    async.waterfall([
+        function (callback) {
+            callback(null, req.body.xuehao,req.body.stared);
+        },
+        function (xuehao,stared,callback){
+            MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+                if (err) throw err;
+                //console.log("数据库已连接!");
+                var dbSylu = db.db("syluCloud");
+                //修改数据
+                var findData = { xuehao: xuehao };
+                var insertData = {
+                    xuehao: xuehao,
+                    star: stared
+                };
+                var upData = {
+                    $set: {
+                        star: stared
+                    }
+                };
+                dbSylu.collection("viewAndStar").find(findData).toArray(function (err, result) { // 返回集合中所有数据
+                    if (err) throw err;
+                    if (result.length == 0) {
+                        dbSylu.collection("viewAndStar").insertOne(insertData, function (err, res) {
+                            if (err) throw err;
+                            //console.log("文档插入成功");
+                            db.close();
+                        });
+                    } else {
+                        dbSylu.collection("viewAndStar").updateOne(findData, upData, function (err, res) {
+                            if (err) throw err;
+                            //console.log("文档更新成功");
+                            db.close();
+                        });
+                    }
+                    callback(null,"ok");
+                });
+            });
+        }
+    ], function (err, result) {
+        res.end(result);
+    });
+});
 //验证学生学号密码等功能，测试完成，可以使用
 app.post('/checkStudentAccount', function (req, res) {
     async.waterfall([
