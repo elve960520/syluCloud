@@ -198,9 +198,9 @@ app.post('/getViewAndStar', function (req, res) {
                     for (let index = 0; index < result.length; index++) {
                         const element = result[index];
                         if (element.xuehao == xuehao) {
-                            var stared = element.stared;
+                            var stared = element.star;
                         }
-                        if (element.stared == true) {
+                        if (element.star == true) {
                             starNum = starNum + 1;
                         }
                     }
