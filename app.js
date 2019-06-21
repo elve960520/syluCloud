@@ -193,7 +193,7 @@ app.post('/getViewAndStar', function (req, res) {
                 //console.log("数据库已连接!");
                 var dbSylu = db.db("syluCloud");
                 let starNum = 0;
-                viewAndStarList = dbSylu.collection("viewAndStar").find().toArray();
+                viewAndStarList = dbSylu.collection("viewAndStar").find({}).toArray();
                 console.log(viewAndStarList)
                 for (let index = 0; index < viewAndStarList.length; index++) {
                     const element = viewAndStarList[index];
