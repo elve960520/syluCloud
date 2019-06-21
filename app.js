@@ -175,6 +175,7 @@ app.post('/getWeekNumber', function (req, res) {
                 weekNum:weekNum
             };
             callback(null,weekData);
+            console.log(weekData)
         }
     ], function (err, result) {
         res.end(JSON.stringify(result));
@@ -209,6 +210,7 @@ app.post('/getViewAndStar', function (req, res) {
                 }
                 callback(null,resuData);
                 db.close();
+                console.log(resuData);
             });
         }
     ], function (err, result) {
