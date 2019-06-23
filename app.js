@@ -160,6 +160,35 @@ app.get('/', function (req, res) {
 app.get('/zan', function (req, res) {
     res.sendFile(__dirname + "/" + "zan.jpg");
 })
+app.post('/sendOpinion', function (req, res) {
+    async.waterfall([
+        function (callback) {
+            callback(null, req.body.xuehao, req.body.classify, req.body.text, req.body.phone);
+        },
+        function (xuehao, classify, text, phone, callback) {
+            MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+                if (err) throw err;
+                //console.log("数据库已连接!");
+                var dbSylu = db.db("syluCloud");
+                //修改数据
+                var insertData = {
+                    xuehao: xuehao,
+                    classify: classify,
+                    text:text,
+                    phone:phone
+                };
+                dbSylu.collection("Opinons").insertOne(insertData, function (err, res) {
+                    if (err) throw err;
+                    //console.log("文档插入成功");
+                    db.close();
+                    callback(null,"ok");
+                })
+            });
+        }
+    ], function (err, result) {
+        res.end(result);
+    });
+});
 //获取周
 app.post('/getWeekNumber', function (req, res) {
     async.waterfall([
@@ -168,13 +197,13 @@ app.post('/getWeekNumber', function (req, res) {
             var date2 = new Date('2019-03-04');
             var date = (date1.getTime() - date2.getTime()) / (24 * 60 * 60 * 1000);
             //alert(parseInt(date)/7+1);
-            callback(null, (parseInt(date)/7+1)>20?20:(parseInt(date)/7+1));
+            callback(null, (parseInt(date) / 7 + 1) > 20 ? 20 : (parseInt(date) / 7 + 1));
         },
-        function (weekNum,callback) {
-            let weekData={
-                weekNum:weekNum
+        function (weekNum, callback) {
+            let weekData = {
+                weekNum: weekNum
             };
-            callback(null,weekData);
+            callback(null, weekData);
             console.log(weekData)
         }
     ], function (err, result) {
@@ -187,13 +216,13 @@ app.post('/getViewAndStar', function (req, res) {
         function (callback) {
             callback(null, req.body.xuehao);
         },
-        function (xuehao,callback){
+        function (xuehao, callback) {
             MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
                 if (err) throw err;
                 //console.log("数据库已连接!");
                 var dbSylu = db.db("syluCloud");
                 let starNum = 0;
-                dbSylu.collection("viewAndStar").find({}).toArray(function (err,result) {
+                dbSylu.collection("viewAndStar").find({}).toArray(function (err, result) {
                     console.log(result)
                     for (let index = 0; index < result.length; index++) {
                         const element = result[index];
@@ -213,7 +242,7 @@ app.post('/getViewAndStar', function (req, res) {
                     db.close();
                     console.log(resuData);
                 });
-                
+
             });
         }
     ], function (err, result) {
@@ -226,7 +255,7 @@ app.post('/setViewNum', function (req, res) {
         function (callback) {
             callback(null, req.body.xuehao);
         },
-        function (xuehao,callback){
+        function (xuehao, callback) {
             MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
                 if (err) throw err;
                 //console.log("数据库已连接!");
@@ -257,7 +286,7 @@ app.post('/setViewNum', function (req, res) {
                             db.close();
                         });
                     }
-                    callback(null,"ok");
+                    callback(null, "ok");
                 });
             });
         }
@@ -269,9 +298,9 @@ app.post('/setViewNum', function (req, res) {
 app.post('/setStared', function (req, res) {
     async.waterfall([
         function (callback) {
-            callback(null, req.body.xuehao,req.body.stared);
+            callback(null, req.body.xuehao, req.body.stared);
         },
-        function (xuehao,stared,callback){
+        function (xuehao, stared, callback) {
             MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
                 if (err) throw err;
                 //console.log("数据库已连接!");
@@ -302,7 +331,7 @@ app.post('/setStared', function (req, res) {
                             db.close();
                         });
                     }
-                    callback(null,"ok");
+                    callback(null, "ok");
                 });
             });
         }
