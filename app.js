@@ -597,7 +597,8 @@ app.post('/getMark', function (req, res) {
                                             markStatus: lastTemp[3],
                                             markClass: lastTemp[4],
                                             markWidget: lastTemp[6],
-                                            markValue: lastTemp[7]
+                                            markValue: lastTemp[7],
+                                            checked:false
                                         };
                                     }
                                     saveStudentMark(xuehao, markList);
@@ -611,7 +612,8 @@ app.post('/getMark', function (req, res) {
                                         markStatus: null,
                                         markClass: null,
                                         markWidget: null,
-                                        markValue: null
+                                        markValue: null,
+                                        checked:false
                                     };
                                 }
                                 callback(null, markList);
