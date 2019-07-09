@@ -8,7 +8,7 @@ var bodyParser = require('body-parser');
 var url = "mongodb://root:meng9826873201@localhost:27017";
 var app = express();
 app.use(bodyParser.json())
-//var urlencodedParser = bodyParser.urlencoded({ extended: false })
+// var urlencodedParser = bodyParser.urlencoded({ extended: false })
 //保存学号密码姓名到数据库
 function saveStudentBasicInfo(xuehao, mima, xingming) {
     MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
@@ -151,6 +151,224 @@ function weekCHineseToNumber(str) {
         return 7;
     }
 }
+//提取学位并存入 返回list
+function insertXuewei(list, body) {
+    var templist = list;
+    xueweiListRe = /<td>.*?\d{9}.*?<\/td>.*?查看介绍<\/a>.*?是\S{0,8}<\/td>\s+<\/tr>/g;
+    var markListReList = body.match(xueweiListRe);
+    //console.log(markListReList);
+    if (markListReList) {
+        for (let index = 0; index < markListReList.length; index++) {
+            const element = markListReList[index];
+            var xueweiRe = /(\d{9})/g;
+            var xueweiList = element.match(xueweiRe);
+            // for (let indexI = 0; indexI < xueweiList.length; indexI++) {
+            //     const elem = xueweiList[indexI];
+            templist.push(xueweiList[1]);
+            // }
+        }
+    }
+    return templist;
+};
+//获取学位课数组
+function getXuewei(xuehao, mima, callback) {
+    async.waterfall([
+        function (callback) {
+            callback(null, xuehao, mima);
+        }, function (xuehao, mima, callback) {
+            request.get({ url: "http://218.25.35.27:8080", encoding: null, forever: true }, function (err, response, body) {
+                var loginUrl = response.request.uri.href;
+                var sessurl = loginUrl.slice(0, 52);
+                var buf = iconv.decode(body, 'gb2312');
+                $ = cheerio.load(buf);
+                var viresta = $('input').attr('value');
+                //console.log($('input').attr('value'));
+                var formData = {
+                    '__VIEWSTATE': iconv.encode(viresta, 'gb2312'),
+                    //'__VIEWSTATE':$('input').attr('value'),
+                    'TextBox1': xuehao,
+                    'TextBox2': mima,
+                    'RadioButtonList1': iconv.encode("学生", 'gb2312'),
+                    'Button1': '',
+                    'lbLanguage': ''
+                };
+                callback(null, loginUrl, formData, sessurl);
+            });
+        }, function (loginUrl, formData, sessurl, callback) {
+            request.post({ url: loginUrl, encoding: null, form: formData, forever: true }, function (err, response, body) {
+                //console.log(iconv.decode(body, 'gb2312'));
+                //console.log(response.request);
+                $ = cheerio.load(iconv.decode(body, 'gb2312'));
+                var mainUrl = "http://218.25.35.27:8080" + $('a').attr('href');
+                console.log(mainUrl);
+                //302跳转登陆
+                callback(null, mainUrl, sessurl)
+            });
+        }, function (mainUrl, sessurl, callback) {
+            request.get({ url: mainUrl, encoding: null, forever: true }, function (err, response, body) {
+                //console.log(iconv.decode(body, 'gb2312'));
+                $ = cheerio.load(iconv.decode(body, 'gb2312'));
+                var re = /\s(\S{2,4})同学/;
+                var xingming = $('#xhxm').text().match(re)[1];
+                console.log(xingming);
+                var header = {
+                    'Referer': mainUrl,
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36'
+                };
+                var tempUrl = sessurl + "pyjh.aspx?xh=" + xuehao + "&xm=" + strToUrlgb2312(xingming) + "&gnmkdm=N121607";
+                callback(null, tempUrl, header)
+
+            });
+        }, function (tempUrl, header, callback) {
+            request.get({ url: tempUrl, encoding: null, forever: true, headers: header }, function (err, response, body) {
+                //console.log(iconv.decode(body, 'gb2312'));
+                $ = cheerio.load(iconv.decode(body, 'gb2312'));
+                var viewstate = $('input').attr('name', '__VIEWSTATE')[2].attribs.value;
+                //console.log(viewstate)
+                header = {
+                    'Referer': tempUrl,
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36'
+                };
+                var xueweiList = [];
+                callback(null, tempUrl, header, viewstate, xueweiList)
+
+            });
+        }, function (tempUrl, header, viewstate, xueweiList, callback) {
+            formData = {
+                '__EVENTTARGET': 'xq',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': iconv.encode(viewstate, 'gb2312'),
+                //'__VIEWSTATE':$('input').attr('value'),
+                'xq': '1',
+                'kcxz': iconv.encode('全部', 'gb2312')
+            };
+            request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
+                body = iconv.decode(body, 'gb2312');
+                xueweiList = insertXuewei(xueweiList, body);
+                console.log("获取第 1 学期");
+                callback(null, tempUrl, header, viewstate, xueweiList)
+
+            })
+        }, function (tempUrl, header, viewstate, xueweiList, callback) {
+            formData = {
+                '__EVENTTARGET': 'xq',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': iconv.encode(viewstate, 'gb2312'),
+                //'__VIEWSTATE':$('input').attr('value'),
+                'xq': '2',
+                'kcxz': iconv.encode('全部', 'gb2312')
+            };
+            request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
+                body = iconv.decode(body, 'gb2312');
+                xueweiList = insertXuewei(xueweiList, body);
+                console.log("获取第 2 学期");
+                callback(null, tempUrl, header, viewstate, xueweiList)
+
+            })
+        }, function (tempUrl, header, viewstate, xueweiList, callback) {
+            formData = {
+                '__EVENTTARGET': 'xq',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': iconv.encode(viewstate, 'gb2312'),
+                //'__VIEWSTATE':$('input').attr('value'),
+                'xq': '3',
+                'kcxz': iconv.encode('全部', 'gb2312')
+            };
+            request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
+                body = iconv.decode(body, 'gb2312');
+                xueweiList = insertXuewei(xueweiList, body);
+                console.log("获取第 3 学期");
+                callback(null, tempUrl, header, viewstate, xueweiList);
+
+            })
+        }, function (tempUrl, header, viewstate, xueweiList, callback) {
+            formData = {
+                '__EVENTTARGET': 'xq',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': iconv.encode(viewstate, 'gb2312'),
+                //'__VIEWSTATE':$('input').attr('value'),
+                'xq': '4',
+                'kcxz': iconv.encode('全部', 'gb2312')
+            };
+            request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
+                body = iconv.decode(body, 'gb2312');
+                xueweiList = insertXuewei(xueweiList, body);
+                console.log("获取第 4 学期");
+                callback(null, tempUrl, header, viewstate, xueweiList);
+
+            })
+        }, function (tempUrl, header, viewstate, xueweiList, callback) {
+            formData = {
+                '__EVENTTARGET': 'xq',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': iconv.encode(viewstate, 'gb2312'),
+                //'__VIEWSTATE':$('input').attr('value'),
+                'xq': '5',
+                'kcxz': iconv.encode('全部', 'gb2312')
+            };
+            request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
+                body = iconv.decode(body, 'gb2312');
+                xueweiList = insertXuewei(xueweiList, body);
+                console.log("获取第 5 学期");
+                callback(null, tempUrl, header, viewstate, xueweiList);
+
+            })
+        }, function (tempUrl, header, viewstate, xueweiList, callback) {
+            formData = {
+                '__EVENTTARGET': 'xq',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': iconv.encode(viewstate, 'gb2312'),
+                //'__VIEWSTATE':$('input').attr('value'),
+                'xq': '6',
+                'kcxz': iconv.encode('全部', 'gb2312')
+            };
+            request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
+                body = iconv.decode(body, 'gb2312');
+                xueweiList = insertXuewei(xueweiList, body);
+                console.log("获取第 6 学期");
+                callback(null, tempUrl, header, viewstate, xueweiList);
+
+            })
+        }, function (tempUrl, header, viewstate, xueweiList, callback) {
+            formData = {
+                '__EVENTTARGET': 'xq',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': iconv.encode(viewstate, 'gb2312'),
+                //'__VIEWSTATE':$('input').attr('value'),
+                'xq': '7',
+                'kcxz': iconv.encode('全部', 'gb2312')
+            };
+            request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
+                body = iconv.decode(body, 'gb2312');
+                xueweiList = insertXuewei(xueweiList, body);
+                console.log("获取第 7 学期");
+                callback(null, tempUrl, header, viewstate, xueweiList);
+
+            })
+        }, function (tempUrl, header, viewstate, xueweiList, callback) {
+            formData = {
+                '__EVENTTARGET': 'xq',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': iconv.encode(viewstate, 'gb2312'),
+                //'__VIEWSTATE':$('input').attr('value'),
+                'xq': '8',
+                'kcxz': iconv.encode('全部', 'gb2312')
+            };
+            request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
+                body = iconv.decode(body, 'gb2312');
+                xueweiList = insertXuewei(xueweiList, body);
+                console.log("获取第 8 学期");
+                callback(null, xueweiList);
+                // callback(null, tempUrl, header, viewstate, xueweiList);
+
+            })
+        }
+
+    ], function (err, result) {
+        //console.log(result);
+        callback(result);
+    });
+}
 //测试界面（本地实验）
 app.get('/', function (req, res) {
     //    res.send('Hello World');
@@ -174,14 +392,14 @@ app.post('/sendOpinion', function (req, res) {
                 var insertData = {
                     xuehao: xuehao,
                     classify: classify,
-                    text:text,
-                    phone:phone
+                    text: text,
+                    phone: phone
                 };
                 dbSylu.collection("Opinons").insertOne(insertData, function (err, res) {
                     if (err) throw err;
                     //console.log("文档插入成功");
                     db.close();
-                    callback(null,"ok");
+                    callback(null, "ok");
                 })
             });
         }
@@ -242,7 +460,6 @@ app.post('/getViewAndStar', function (req, res) {
                     db.close();
                     console.log(resuData);
                 });
-
             });
         }
     ], function (err, result) {
@@ -426,7 +643,7 @@ app.post('/getSource', function (req, res) {
                     'Button1': '',
                     'lbLanguage': ''
                 };
-                console.log(sessurl);
+                // console.log(sessurl);
                 //console.log(iconv.encode("学生",'gb2312'));
                 //教学网登陆+++++++
                 request.post({ url: loginUrl, encoding: null, form: formData, forever: true }, function (err, response, body) {
@@ -536,7 +753,7 @@ app.post('/getMark', function (req, res) {
                     'Button1': '',
                     'lbLanguage': ''
                 };
-                console.log(sessurl);
+                // console.log(sessurl);
                 //console.log(iconv.encode("学生",'gb2312'));
                 //教学网登陆+++++++
                 request.post({ url: loginUrl, encoding: null, form: formData, forever: true }, function (err, response, body) {
@@ -598,7 +815,7 @@ app.post('/getMark', function (req, res) {
                                             markClass: lastTemp[4],
                                             markWidget: lastTemp[6],
                                             markValue: lastTemp[7],
-                                            checked:false
+                                            checked: false
                                         };
                                     }
                                     saveStudentMark(xuehao, markList);
@@ -613,7 +830,7 @@ app.post('/getMark', function (req, res) {
                                         markClass: null,
                                         markWidget: null,
                                         markValue: null,
-                                        checked:false
+                                        checked: false
                                     };
                                 }
                                 callback(null, markList);
@@ -626,6 +843,66 @@ app.post('/getMark', function (req, res) {
     ], function (err, result) {
         res.end(JSON.stringify(result));
     });
+});
+//获取专业课列表，返回 json
+app.post('/getSpeSource', function (req, res) {
+    async.waterfall([
+        function (callback) {
+            callback(null, req.body.xuehao, req.body.mima);
+        },
+        function (xuehao, mima, callback) {
+            var zhuanyeNum = xuehao.substring(0, 8);
+            console.log(zhuanyeNum);
+            MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+                if (err) throw err;
+                //console.log("数据库已连接!");
+                var dbSylu = db.db("syluCloud");
+                var findData = { zhuanyeNum: zhuanyeNum };
+                dbSylu.collection("studentSpecialities").find(findData).toArray(function (err, result) {
+                    //console.log(result)
+                    if (err) throw err;
+                    callback(null, result, zhuanyeNum, xuehao, mima)
+                    db.close();
+                });
+            });
+        }, function (resuData, zhuanyeNum, xuehao, mima, callback) {
+            if (resuData.length == 0) {
+                getXuewei(xuehao, mima, function (xueweiList) {
+                    var xueweiList = xueweiList;
+                    console.log("获取到的列表：");
+                    console.log(xueweiList);
+                    callback(null, xueweiList, zhuanyeNum, 1);
+                });
+            } else {
+                console.log(resuData[0].xueweiList)
+                callback(null, resuData[0].xueweiList, zhuanyeNum, 2);
+            }
+        }, function (xueweiList, zhuanyeNum, statNum, callback) {
+            if (statNum == 1) {
+                MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+                    if (err) throw err;
+                    //console.log("数据库已连接!");
+                    var dbSylu = db.db("syluCloud");
+                    var insertData = {
+                        zhuanyeNum: zhuanyeNum,
+                        xueweiList: xueweiList
+                    }
+                    dbSylu.collection("studentSpecialities").insertOne(insertData, function (err, res) {
+                        if (err) throw err;
+                        //console.log("文档插入成功");
+                        callback(null, xueweiList)
+                        db.close();
+                    });
+
+                });
+            } else if (statNum == 2) {
+                callback(null, xueweiList);
+            }
+        }
+
+    ], function (err, result) {
+        res.end(JSON.stringify(result));
+    })
 });
 
 var server = app.listen({ host: 'localhost', port: 3000 }, function () {
