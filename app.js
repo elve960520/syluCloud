@@ -152,7 +152,7 @@ function weekCHineseToNumber(str) {
     }
 }
 //提取学位并存入 返回list
-function insertXuewei(list, body) {
+function insertXuewei(list, body, callback) {
     var templist = list;
     xueweiListRe = /<td>.*?\d{9}.*?<\/td>.*?查看介绍<\/a>.*?是\S{0,8}<\/td>\s+<\/tr>/g;
     var markListReList = body.match(xueweiListRe);
@@ -168,7 +168,7 @@ function insertXuewei(list, body) {
             // }
         }
     }
-    return templist;
+    callback(templist);
 };
 //获取学位课数组
 function getXuewei(xuehao, mima, callback) {
@@ -244,10 +244,10 @@ function getXuewei(xuehao, mima, callback) {
             };
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
-                xueweiList = insertXuewei(xueweiList, body);
-                console.log(xueweiList);
-                callback(null, tempUrl, header, viewstate, xueweiList)
-
+                insertXuewei(xueweiList, body, function (xueweiList) {
+                    console.log(xueweiList);
+                    callback(null, tempUrl, header, viewstate, xueweiList)
+                });
             })
         }, function (tempUrl, header, viewstate, xueweiList, callback) {
             formData = {
@@ -260,9 +260,10 @@ function getXuewei(xuehao, mima, callback) {
             };
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
-                xueweiList = insertXuewei(xueweiList, body);
-                console.log(xueweiList);
-                callback(null, tempUrl, header, viewstate, xueweiList)
+                insertXuewei(xueweiList, body, function (xueweiList) {
+                    console.log(xueweiList);
+                    callback(null, tempUrl, header, viewstate, xueweiList)
+                });
 
             })
         }, function (tempUrl, header, viewstate, xueweiList, callback) {
@@ -276,9 +277,10 @@ function getXuewei(xuehao, mima, callback) {
             };
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
-                xueweiList = insertXuewei(xueweiList, body);
-                console.log(xueweiList);
-                callback(null, tempUrl, header, viewstate, xueweiList);
+                insertXuewei(xueweiList, body, function (xueweiList) {
+                    console.log(xueweiList);
+                    callback(null, tempUrl, header, viewstate, xueweiList)
+                });
 
             })
         }, function (tempUrl, header, viewstate, xueweiList, callback) {
@@ -292,9 +294,10 @@ function getXuewei(xuehao, mima, callback) {
             };
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
-                xueweiList = insertXuewei(xueweiList, body);
-                console.log(xueweiList);
-                callback(null, tempUrl, header, viewstate, xueweiList);
+                insertXuewei(xueweiList, body, function (xueweiList) {
+                    console.log(xueweiList);
+                    callback(null, tempUrl, header, viewstate, xueweiList)
+                });
 
             })
         }, function (tempUrl, header, viewstate, xueweiList, callback) {
@@ -308,9 +311,10 @@ function getXuewei(xuehao, mima, callback) {
             };
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
-                xueweiList = insertXuewei(xueweiList, body);
-                console.log(xueweiList);
-                callback(null, tempUrl, header, viewstate, xueweiList);
+                insertXuewei(xueweiList, body, function (xueweiList) {
+                    console.log(xueweiList);
+                    callback(null, tempUrl, header, viewstate, xueweiList)
+                });
 
             })
         }, function (tempUrl, header, viewstate, xueweiList, callback) {
@@ -324,9 +328,10 @@ function getXuewei(xuehao, mima, callback) {
             };
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
-                xueweiList = insertXuewei(xueweiList, body);
-                console.log(xueweiList);
-                callback(null, tempUrl, header, viewstate, xueweiList);
+                insertXuewei(xueweiList, body, function (xueweiList) {
+                    console.log(xueweiList);
+                    callback(null, tempUrl, header, viewstate, xueweiList)
+                });
 
             })
         }, function (tempUrl, header, viewstate, xueweiList, callback) {
@@ -340,10 +345,10 @@ function getXuewei(xuehao, mima, callback) {
             };
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
-                xueweiList = insertXuewei(xueweiList, body);
-                console.log(xueweiList);
-                callback(null, tempUrl, header, viewstate, xueweiList);
-
+                insertXuewei(xueweiList, body, function (xueweiList) {
+                    console.log(xueweiList);
+                    callback(null, tempUrl, header, viewstate, xueweiList)
+                });
             })
         }, function (tempUrl, header, viewstate, xueweiList, callback) {
             formData = {
@@ -356,11 +361,11 @@ function getXuewei(xuehao, mima, callback) {
             };
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
-                xueweiList = insertXuewei(xueweiList, body);
-                console.log(xueweiList);
-                callback(null, xueweiList);
-                // callback(null, tempUrl, header, viewstate, xueweiList);
-
+                insertXuewei(xueweiList, body, function (xueweiList) {
+                    console.log(xueweiList);
+                    callback(null, xueweiList);
+                });
+                
             })
         }
 
@@ -845,7 +850,7 @@ app.post('/getMark', function (req, res) {
     });
 });
 //获取专业课列表，返回 json
-app.post('/getSpeSource',urlencodedParser, function (req, res) {
+app.post('/getSpeSource', urlencodedParser, function (req, res) {
     async.waterfall([
         function (callback) {
             callback(null, req.body.xuehao, req.body.mima);
@@ -886,7 +891,7 @@ app.post('/getSpeSource',urlencodedParser, function (req, res) {
                             //console.log("文档插入成功");
                             db.close();
                         });
-    
+
                     });
                 });
             } else {
@@ -897,7 +902,7 @@ app.post('/getSpeSource',urlencodedParser, function (req, res) {
         // , function (xueweiList, callback) {
         //     callback(null, xueweiList);
         //     // if (statNum == 1) {
-                
+
         //     // } else if (statNum == 2) {
         //     //     callback(null, xueweiList);
         //     // }
