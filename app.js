@@ -7,8 +7,8 @@ var MongoClient = require('mongodb').MongoClient;
 var bodyParser = require('body-parser');
 var url = "mongodb://root:meng9826873201@localhost:27017";
 var app = express();
-app.use(bodyParser.json())
-// var urlencodedParser = bodyParser.urlencoded({ extended: false })
+// app.use(bodyParser.json())
+var urlencodedParser = bodyParser.urlencoded({ extended: false })
 //保存学号密码姓名到数据库
 function saveStudentBasicInfo(xuehao, mima, xingming) {
     MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
@@ -245,7 +245,7 @@ function getXuewei(xuehao, mima, callback) {
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
                 xueweiList = insertXuewei(xueweiList, body);
-                console.log("获取第 1 学期");
+                console.log(xueweiList);
                 callback(null, tempUrl, header, viewstate, xueweiList)
 
             })
@@ -261,7 +261,7 @@ function getXuewei(xuehao, mima, callback) {
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
                 xueweiList = insertXuewei(xueweiList, body);
-                console.log("获取第 2 学期");
+                console.log(xueweiList);
                 callback(null, tempUrl, header, viewstate, xueweiList)
 
             })
@@ -277,7 +277,7 @@ function getXuewei(xuehao, mima, callback) {
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
                 xueweiList = insertXuewei(xueweiList, body);
-                console.log("获取第 3 学期");
+                console.log(xueweiList);
                 callback(null, tempUrl, header, viewstate, xueweiList);
 
             })
@@ -293,7 +293,7 @@ function getXuewei(xuehao, mima, callback) {
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
                 xueweiList = insertXuewei(xueweiList, body);
-                console.log("获取第 4 学期");
+                console.log(xueweiList);
                 callback(null, tempUrl, header, viewstate, xueweiList);
 
             })
@@ -309,7 +309,7 @@ function getXuewei(xuehao, mima, callback) {
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
                 xueweiList = insertXuewei(xueweiList, body);
-                console.log("获取第 5 学期");
+                console.log(xueweiList);
                 callback(null, tempUrl, header, viewstate, xueweiList);
 
             })
@@ -325,7 +325,7 @@ function getXuewei(xuehao, mima, callback) {
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
                 xueweiList = insertXuewei(xueweiList, body);
-                console.log("获取第 6 学期");
+                console.log(xueweiList);
                 callback(null, tempUrl, header, viewstate, xueweiList);
 
             })
@@ -341,7 +341,7 @@ function getXuewei(xuehao, mima, callback) {
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
                 xueweiList = insertXuewei(xueweiList, body);
-                console.log("获取第 7 学期");
+                console.log(xueweiList);
                 callback(null, tempUrl, header, viewstate, xueweiList);
 
             })
@@ -357,7 +357,7 @@ function getXuewei(xuehao, mima, callback) {
             request.post({ url: tempUrl, encoding: null, form: formData, forever: true, headers: header }, function (err, response, body) {
                 body = iconv.decode(body, 'gb2312');
                 xueweiList = insertXuewei(xueweiList, body);
-                console.log("获取第 8 学期");
+                console.log(xueweiList);
                 callback(null, xueweiList);
                 // callback(null, tempUrl, header, viewstate, xueweiList);
 
@@ -845,7 +845,7 @@ app.post('/getMark', function (req, res) {
     });
 });
 //获取专业课列表，返回 json
-app.post('/getSpeSource', function (req, res) {
+app.post('/getSpeSource',urlencodedParser, function (req, res) {
     async.waterfall([
         function (callback) {
             callback(null, req.body.xuehao, req.body.mima);
@@ -867,38 +867,41 @@ app.post('/getSpeSource', function (req, res) {
             });
         }, function (resuData, zhuanyeNum, xuehao, mima, callback) {
             if (resuData.length == 0) {
+                var xueweiList = [];
+                callback(null, xueweiList);
                 getXuewei(xuehao, mima, function (xueweiList) {
-                    var xueweiList = xueweiList;
+                    xueweiList = xueweiList;
                     console.log("获取到的列表：");
                     console.log(xueweiList);
-                    callback(null, xueweiList, zhuanyeNum, 1);
+                    MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+                        if (err) throw err;
+                        //console.log("数据库已连接!");
+                        var dbSylu = db.db("syluCloud");
+                        var insertData = {
+                            zhuanyeNum: zhuanyeNum,
+                            xueweiList: xueweiList
+                        }
+                        dbSylu.collection("studentSpecialities").insertOne(insertData, function (err, res) {
+                            if (err) throw err;
+                            //console.log("文档插入成功");
+                            db.close();
+                        });
+    
+                    });
                 });
             } else {
                 console.log(resuData[0].xueweiList)
-                callback(null, resuData[0].xueweiList, zhuanyeNum, 2);
-            }
-        }, function (xueweiList, zhuanyeNum, statNum, callback) {
-            if (statNum == 1) {
-                MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
-                    if (err) throw err;
-                    //console.log("数据库已连接!");
-                    var dbSylu = db.db("syluCloud");
-                    var insertData = {
-                        zhuanyeNum: zhuanyeNum,
-                        xueweiList: xueweiList
-                    }
-                    dbSylu.collection("studentSpecialities").insertOne(insertData, function (err, res) {
-                        if (err) throw err;
-                        //console.log("文档插入成功");
-                        callback(null, xueweiList)
-                        db.close();
-                    });
-
-                });
-            } else if (statNum == 2) {
-                callback(null, xueweiList);
+                callback(null, resuData[0].xueweiList);
             }
         }
+        // , function (xueweiList, callback) {
+        //     callback(null, xueweiList);
+        //     // if (statNum == 1) {
+                
+        //     // } else if (statNum == 2) {
+        //     //     callback(null, xueweiList);
+        //     // }
+        // }
 
     ], function (err, result) {
         res.end(JSON.stringify(result));
