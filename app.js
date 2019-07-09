@@ -5,10 +5,12 @@ var request = require('request');
 var async = require('async');
 var MongoClient = require('mongodb').MongoClient;
 var bodyParser = require('body-parser');
+
 var url = "mongodb://root:meng9826873201@localhost:27017";
 var app = express();
-// app.use(bodyParser.json())
-var urlencodedParser = bodyParser.urlencoded({ extended: false })
+app.use(bodyParser.json())
+// var urlencodedParser = bodyParser.urlencoded({ extended: false })
+
 //保存学号密码姓名到数据库
 function saveStudentBasicInfo(xuehao, mima, xingming) {
     MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
@@ -850,7 +852,7 @@ app.post('/getMark', function (req, res) {
     });
 });
 //获取专业课列表，返回 json
-app.post('/getSpeSource', urlencodedParser, function (req, res) {
+app.post('/getSpeSource', function (req, res) {
     async.waterfall([
         function (callback) {
             callback(null, req.body.xuehao, req.body.mima);
