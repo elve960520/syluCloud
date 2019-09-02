@@ -626,7 +626,7 @@ app.post('/checkStudentAccount', function (req, res) {
         res.end(JSON.stringify(response));
     });
 });
-//获取课程表功能测试通过，待优化，没有错误处理，返回 json 数据
+//获取课程表功能测试通过，待优化，没有错误处理，返回 json 数据，单双周
 app.post('/getSource', function (req, res) {
     async.waterfall([
         function (callback) {
@@ -674,7 +674,7 @@ app.post('/getSource', function (req, res) {
                         request.get({ url: tempUrl, encoding: null, forever: true, headers: header }, function (err, response, body) {
                             console.log(tempUrl);
                             body = iconv.decode(body, 'gb2312');
-                            re = /(<br|rowspan=\"2\"|width=\"7%\")>[^<](\S+?)<br>周(一|二|三|四|五|六|日)第(1|3|5|7|9|11),(2|4|6|8|10|12)节{第(\d+)-(\d+)周}<br>(\S+?)<br>(\S+?)<(br>|\/td>)/g;
+                            re = /(<br|rowspan=\"2\"|width=\"7%\")>[^<](.*?)<br>周(一|二|三|四|五|六|日)第(1|3|5|7|9|11),(2|4|6|8|10|12)节{第(\d+)-(\d+)周\S{0,3}}<br>(\S+?)<br>(\S+?)<(br>|\/td>)/g;
                             //re = /<td align="Center" rowspan="2"\s{0,1}\S{0,10}>(\S+)<br>(周\S+)<br>(\S+)<br>([A-Z]{0,4}-\d+)<\/td>/g;
                             var course = body.match(re);
                             var source_id = 0;
@@ -682,7 +682,7 @@ app.post('/getSource', function (req, res) {
                                 for (let index = 0; index < course.length; index++) {
                                     var element = course[index];
                                     console.log(element);
-                                    tempRe = />(\S+?)<br>周(一|二|三|四|五|六|日)第(1|3|5|7|9|11),\d{1,2}节{第(\d+)-(\d+)周}<br>(\S+?)<br>(\S+?)</;
+                                    tempRe = />(\S+?)<br>周(一|二|三|四|五|六|日)第(1|3|5|7|9|11),\d{1,2}节{第(\d+)-(\d+)周\S{0,3}}<br>(\S+?)<br>(\S+?)</;
                                     var sourceArray = element.match(tempRe);
                                     sourceList[source_id] = {
                                         sourceId: source_id++,
@@ -693,7 +693,7 @@ app.post('/getSource', function (req, res) {
                                         sourceWeekDay: weekCHineseToNumber(sourceArray[2]),
                                         sourceTime: sourceArray[3],
                                         sourceTeacher: sourceArray[6],
-                                        sourceSingleWeek: 0
+                                        sourceSingleWeek: element.match("单")?1:(element.match("双")?2:0)
                                     };
                                     var nowDate = new Date();
                                     var nowYear = nowDate.getFullYear();
