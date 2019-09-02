@@ -419,7 +419,7 @@ app.post('/getWeekNumber', function (req, res) {
     async.waterfall([
         function (callback) {
             var date1 = new Date();
-            var date2 = new Date('2019-03-04');
+            var date2 = new Date('2019-09-02');
             var date = (date1.getTime() - date2.getTime()) / (24 * 60 * 60 * 1000);
             //alert(parseInt(date)/7+1);
             callback(null, (parseInt(date) / 7 + 1) > 20 ? 20 : (parseInt(date) / 7 + 1));
@@ -901,14 +901,6 @@ app.post('/getSpeSource', function (req, res) {
                 callback(null, resuData[0].xueweiList);
             }
         }
-        // , function (xueweiList, callback) {
-        //     callback(null, xueweiList);
-        //     // if (statNum == 1) {
-
-        //     // } else if (statNum == 2) {
-        //     //     callback(null, xueweiList);
-        //     // }
-        // }
 
     ], function (err, result) {
         res.end(JSON.stringify(result));
